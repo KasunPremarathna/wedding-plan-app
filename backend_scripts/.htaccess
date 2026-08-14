@@ -1,0 +1,14 @@
+# Disable directory browsing to protect files
+Options -Indexes
+
+# Prevent access to hidden files (like .htaccess itself)
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect PHP files from being viewed as text if PHP is misconfigured
+<FilesMatch "\.(php|inc)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>

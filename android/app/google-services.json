@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "37183053335",
+    "project_id": "wedding-planner-lk",
+    "storage_bucket": "wedding-planner-lk.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:37183053335:android:d7d2dc90f00276a2ea4652",
+        "android_client_info": {
+          "package_name": "com.weddingplannerlk.wedding_planner_lk"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "37183053335-7bt9r21q66mikgm11qcbq9l7olp7821u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.weddingplannerlk.wedding_planner_lk",
+            "certificate_hash": "be4d43444f288563e9aa4fdbe7bbea053b423172"
+          }
+        },
+        {
+          "client_id": "37183053335-mpv6cou9c0jgs06dki17ijhojkjmo5ui.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.weddingplannerlk.wedding_planner_lk",
+            "certificate_hash": "54321d263f978333c4c21f61cabae05094fc7963"
+          }
+        },
+        {
+          "client_id": "37183053335-2cai664iqtc11dio75iunukfijknu6f8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHnF7z_X9hGt8KNpNlzkKmAVCUhU7M3pg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "37183053335-2cai664iqtc11dio75iunukfijknu6f8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
