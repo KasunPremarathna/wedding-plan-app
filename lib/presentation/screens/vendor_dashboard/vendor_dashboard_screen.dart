@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 final currentVendorProvider = StreamProvider<Map<String, dynamic>?>((ref) {
   final user = ref.watch(authProvider).asData?.value;
@@ -37,6 +38,16 @@ class VendorDashboardScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         actions: [
+          vendorAsync.maybeWhen(
+            data: (vendor) => vendor == null
+                ? const SizedBox.shrink()
+                : IconButton(
+                    icon: Icon(Icons.share_rounded, color: isDark ? Colors.white : AppColors.deepNavy),
+                    tooltip: 'Share Profile',
+                    onPressed: () => _shareVendorProfile(vendor),
+                  ),
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
             icon: Stack(
               children: [
@@ -95,7 +106,7 @@ class VendorDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 32),
               _SectionTitle(title: 'Analytics Overview', isDark: isDark),
               const SizedBox(height: 12),
-              _buildAnalyticsCard(isDark, vendor),
+              _buildAnalyticsCard(context, isDark, vendor),
             ],
           );
         }
@@ -149,9 +160,61 @@ class VendorDashboardScreen extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: () => _shareVendorProfile(vendor),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.share_rounded, color: Colors.white, size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    '🔗 Share My Vendor Profile',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  void _shareVendorProfile(Map<String, dynamic> vendor) {
+    final name = vendor['name'] ?? 'My Business';
+    final vendorId = vendor['id'] ?? '';
+    final category = (vendor['category'] ?? 'Wedding Vendor').toString().replaceAll('_', ' ').toUpperCase();
+    final district = vendor['district'] ?? 'Sri Lanka';
+    final rating = (vendor['rating'] as num?)?.toDouble() ?? 0.0;
+    final reviewCount = vendor['review_count'] ?? 0;
+
+    final text = '''
+✨ Check out $name on Wedding Planner LK! ✨
+
+👑 Category: $category
+📍 District: $district
+⭐ Rating: ${rating.toStringAsFixed(1)} ($reviewCount Reviews)
+
+👉 View my profile & packages on Wedding Planner LK App:
+https://apiwedding.kasunpremarathna.com/vendor.php?id=$vendorId
+''';
+
+    // ignore: deprecated_member_use
+    Share.share(text, subject: 'Check out $name on Wedding Planner LK');
   }
 
   Widget _buildAvailabilityCard(bool isDark, Map<String, dynamic> vendor, WidgetRef ref) {
@@ -225,7 +288,7 @@ class VendorDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAnalyticsCard(bool isDark, Map<String, dynamic> vendor) {
+  Widget _buildAnalyticsCard(BuildContext context, bool isDark, Map<String, dynamic> vendor) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

@@ -13,6 +13,7 @@ import '../../../data/models/models.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/localization_helper.dart';
+import 'package:share_plus/share_plus.dart';
 
 class VendorDetailScreen extends ConsumerStatefulWidget {
   final String vendorId;
@@ -152,9 +153,39 @@ class _VendorDetailScreenState extends ConsumerState<VendorDetailScreen>
           ),
           actions: [
             GestureDetector(
-              onTap: () => ref.read(favoritesProvider.notifier).toggle(vendor.id),
+              onTap: () {
+                final category = vendor.category.replaceAll('_', ' ').toUpperCase();
+                final text = '''
+✨ Check out ${vendor.name} on Wedding Planner LK! ✨
+
+👑 Category: $category
+📍 District: ${vendor.district}
+⭐ Rating: ${vendor.rating.toStringAsFixed(1)} (${vendor.reviewCount} Reviews)
+
+👉 View profile & packages on Wedding Planner LK App:
+https://apiwedding.kasunpremarathna.com/vendor.php?id=${vendor.id}
+''';
+                // ignore: deprecated_member_use
+                Share.share(text, subject: 'Check out ${vendor.name} on Wedding Planner LK');
+              },
               child: Container(
                 margin: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black38,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.share_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: () => ref.read(favoritesProvider.notifier).toggle(vendor.id),
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(0, 8, 8, 8),
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: Colors.black38,
