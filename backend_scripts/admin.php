@@ -125,10 +125,11 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
             <li class="nav-item"><button class="nav-link active" onclick="switchTab('pending')">⏳ Pending Approvals</button></li>
             <li class="nav-item"><button class="nav-link" onclick="switchTab('approved')">✅ Approved Vendors</button></li>
             <li class="nav-item"><button class="nav-link" onclick="switchTab('rejected')">❌ Rejected</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('sponsored')">🌟 Sponsored Banners</button></li>
         </ul>
 
-        <!-- Table Card -->
-        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <!-- Vendors Table Card -->
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden" id="vendor-table-card">
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
@@ -146,6 +147,34 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                             <tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div> Loading...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sponsored Banners Container -->
+        <div class="d-none" id="sponsored-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold m-0">🌟 Active Sponsored Banners</h5>
+                <button class="btn btn-gold" onclick="openSponsoredModal()">➕ Add New Banner</button>
+            </div>
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="px-4 py-3">Banner Image</th>
+                                    <th class="py-3">Title</th>
+                                    <th class="py-3">Subtitle</th>
+                                    <th class="py-3">Link URL</th>
+                                    <th class="py-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sponsored-table-body">
+                                <tr><td colspan="5" class="text-center py-4"><div class="spinner-border text-warning" role="status"></div> Loading Banners...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -185,12 +214,49 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
         </div>
       </div>
     </div>
+
+    <!-- Add/Edit Sponsored Banner Modal -->
+    <div class="modal fade" id="sponsoredModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-navy text-white">
+            <h5 class="modal-title">🌟 Setup Sponsored Banner</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="banner-id">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Banner Image</label>
+              <input type="file" class="form-control mb-2" id="banner-file" accept="image/*">
+              <input type="text" class="form-control" id="banner-image-url" placeholder="Or enter image URL directly (http...)">
+              <small class="text-muted">Recommended aspect ratio: 16:9 or 2:1</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Banner Title</label>
+              <input type="text" class="form-control" id="banner-title" placeholder="e.g. Grand Pearl Hotel">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Banner Subtitle</label>
+              <input type="text" class="form-control" id="banner-subtitle" placeholder="e.g. Luxury Wedding Venues • Colombo">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Target Link / Vendor ID</label>
+              <input type="text" class="form-control" id="banner-link-url" placeholder="e.g. https://... or vendor ID">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-gold" id="btn-save-banner">Save Banner</button>
+          </div>
+        </div>
+      </div>
+    </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, query, where, getDocs, doc, updateDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, query, where, getDocs, doc, updateDoc, addDoc, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCHnF7z_X9hGt8KNpNlzkKmAVCUhU7M3pg",
@@ -202,13 +268,25 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
         const db = getFirestore(app);
 
         let currentTab = 'pending';
-        let allVendorsData = {}; // Store data for editing
+        let allVendorsData = {};
 
         window.switchTab = function(tab) {
             currentTab = tab;
             document.querySelectorAll('#adminTab .nav-link').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            loadVendors(tab);
+            if (event) event.target.classList.add('active');
+
+            const vendorCard = document.getElementById('vendor-table-card');
+            const sponsoredCard = document.getElementById('sponsored-container');
+
+            if (tab === 'sponsored') {
+                vendorCard.classList.add('d-none');
+                sponsoredCard.classList.remove('d-none');
+                loadSponsoredBanners();
+            } else {
+                sponsoredCard.classList.add('d-none');
+                vendorCard.classList.remove('d-none');
+                loadVendors(tab);
+            }
         }
 
         async function loadStats() {
@@ -276,6 +354,7 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                                     <button class="btn btn-sm ${isBoosted ? 'btn-warning' : 'btn-outline-warning'} action-boost" data-id="${id}" data-boosted="${isBoosted}">
                                         ${isBoosted ? '⚡ Unboost' : '⚡ Boost'}
                                     </button>
+                                    <button class="btn btn-sm btn-outline-primary action-sponsor" data-id="${id}">🌟 Sponsor</button>
                                     <button class="btn btn-danger btn-sm action-reject" data-id="${id}">❌ Reject</button>
                                 ` : ''}
                                 ${status === 'rejected' ? `
@@ -307,7 +386,7 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                     btn.addEventListener('click', async (e) => {
                         const id = e.target.getAttribute('data-id');
                         const reason = prompt('Rejection reason (optional, shown to vendor):');
-                        if (reason === null) return; // User pressed Cancel
+                        if (reason === null) return;
                         if (confirm('Reject this vendor?')) {
                             await updateDoc(doc(db, 'vendor_registrations', id), {
                                 status: 'rejected',
@@ -336,6 +415,14 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                     });
                 });
 
+                document.querySelectorAll('.action-sponsor').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = e.target.getAttribute('data-id');
+                        const v = allVendorsData[id];
+                        openSponsoredModalWithVendor(id, v);
+                    });
+                });
+
                 document.querySelectorAll('.action-edit').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const id = e.target.getAttribute('data-id');
@@ -356,10 +443,142 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
             }
         }
 
+        // ============================================================
+        // SPONSORED BANNERS LOGIC
+        // ============================================================
+        async function loadSponsoredBanners() {
+            const tbody = document.getElementById('sponsored-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border text-warning" role="status"></div> Loading Banners...</td></tr>';
+
+            try {
+                const snap = await getDocs(collection(db, 'sponsored_banners'));
+                tbody.innerHTML = '';
+
+                if (snap.empty) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No sponsored banners active. Click "Add New Banner" to create one.</td></tr>';
+                    return;
+                }
+
+                snap.forEach((document) => {
+                    const b = document.data();
+                    const id = document.id;
+
+                    const tr = window.document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4">
+                            <img src="${b.image_url || 'https://via.placeholder.com/120x60'}" style="width:100px; height:50px; object-fit:cover; border-radius:8px;" alt="Banner">
+                        </td>
+                        <td><div class="fw-bold">${b.title || 'N/A'}</div></td>
+                        <td><small class="text-muted">${b.subtitle || ''}</small></td>
+                        <td><small class="text-primary">${b.link_url || 'N/A'}</small></td>
+                        <td>
+                            <button class="btn btn-danger btn-sm action-delete-banner" data-id="${id}">🗑️ Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.querySelectorAll('.action-delete-banner').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const id = e.target.getAttribute('data-id');
+                        if (confirm('Delete this sponsored banner?')) {
+                            await deleteDoc(doc(db, 'sponsored_banners', id));
+                            alert('🗑️ Banner deleted successfully!');
+                            loadSponsoredBanners();
+                        }
+                    });
+                });
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center py-4">Error loading banners: ${err.message}</td></tr>`;
+            }
+        }
+
+        window.openSponsoredModal = function() {
+            document.getElementById('banner-id').value = '';
+            document.getElementById('banner-file').value = '';
+            document.getElementById('banner-image-url').value = '';
+            document.getElementById('banner-title').value = '';
+            document.getElementById('banner-subtitle').value = '';
+            document.getElementById('banner-link-url').value = '';
+            const modal = new bootstrap.Modal(document.getElementById('sponsoredModal'));
+            modal.show();
+        };
+
+        function openSponsoredModalWithVendor(vendorId, v) {
+            document.getElementById('banner-id').value = '';
+            document.getElementById('banner-file').value = '';
+            document.getElementById('banner-image-url').value = v.cover_image_url || v.profile_image_url || '';
+            document.getElementById('banner-title').value = v.name || '';
+            document.getElementById('banner-subtitle').value = `${v.category || 'Vendor'} • ${v.district || 'Sri Lanka'}`;
+            document.getElementById('banner-link-url').value = `/vendor-detail?id=${vendorId}`;
+            const modal = new bootstrap.Modal(document.getElementById('sponsoredModal'));
+            modal.show();
+        }
+
+        document.getElementById('btn-save-banner').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-save-banner');
+            btn.innerHTML = 'Saving...';
+            btn.disabled = true;
+
+            try {
+                let imageUrl = document.getElementById('banner-image-url').value.trim();
+                const fileInput = document.getElementById('banner-file');
+
+                // If file is selected, upload via upload.php first
+                if (fileInput.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('image', fileInput.files[0]);
+                    const res = await fetch('upload.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success && data.url) {
+                        imageUrl = data.url;
+                    } else {
+                        throw new Error(data.message || 'Image upload failed');
+                    }
+                }
+
+                if (!imageUrl) {
+                    alert('Please select an image file or provide an Image URL.');
+                    btn.innerHTML = 'Save Banner';
+                    btn.disabled = false;
+                    return;
+                }
+
+                const title = document.getElementById('banner-title').value.trim();
+                const subtitle = document.getElementById('banner-subtitle').value.trim();
+                const linkUrl = document.getElementById('banner-link-url').value.trim();
+
+                await addDoc(collection(db, 'sponsored_banners'), {
+                    image_url: imageUrl,
+                    title: title,
+                    subtitle: subtitle,
+                    link_url: linkUrl,
+                    created_at: new Date().toISOString()
+                });
+
+                alert('🌟 Sponsored Banner created successfully!');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('sponsoredModal'));
+                modal.hide();
+
+                if (currentTab === 'sponsored') {
+                    loadSponsoredBanners();
+                }
+            } catch (err) {
+                alert('Error saving banner: ' + err.message);
+            }
+
+            btn.innerHTML = 'Save Banner';
+            btn.disabled = false;
+        });
+
         // Initial load
         loadVendors('pending');
         loadStats();
-        
+
         document.getElementById('btn-save-vendor').addEventListener('click', async () => {
             const id = document.getElementById('edit-vendor-id').value;
             const btn = document.getElementById('btn-save-vendor');
