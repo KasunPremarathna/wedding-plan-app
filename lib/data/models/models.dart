@@ -24,6 +24,7 @@ class Vendor {
   final List<String> galleryImages;
   final List<VendorPackage> packages;
   final List<Review> reviews;
+  final bool isAvailable;
   final String createdAt;
 
   const Vendor({
@@ -48,6 +49,7 @@ class Vendor {
     required this.galleryImages,
     required this.packages,
     required this.reviews,
+    this.isAvailable = true,
     required this.createdAt,
   });
 
@@ -70,6 +72,7 @@ class Vendor {
         isFeatured: json['is_featured'] as bool? ?? false,
         boostBadge: json['boost_badge'] as String? ?? '',
         coverImageUrl: json['cover_image_url'] as String? ?? '',
+        isAvailable: json['is_available'] as bool? ?? true,
         galleryImages: (json['gallery_images'] as List<dynamic>?)
                 ?.map((e) => e as String)
                 .toList() ??
@@ -123,6 +126,7 @@ class VendorPackage {
   final String description;
   final List<String> features;
   final bool isPopular;
+  final String? pdfUrl;
 
   const VendorPackage({
     required this.id,
@@ -132,6 +136,7 @@ class VendorPackage {
     required this.description,
     required this.features,
     required this.isPopular,
+    this.pdfUrl,
   });
 
   factory VendorPackage.fromJson(Map<String, dynamic> json) => VendorPackage(
@@ -145,6 +150,7 @@ class VendorPackage {
                 .toList() ??
             [],
         isPopular: json['is_popular'] as bool? ?? false,
+        pdfUrl: json['pdf_url'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -155,6 +161,7 @@ class VendorPackage {
         'description': description,
         'features': features,
         'is_popular': isPopular,
+        if (pdfUrl != null) 'pdf_url': pdfUrl,
       };
 }
 
@@ -391,6 +398,24 @@ class Guest {
     this.mealPreference = 'Non-Veg',
     this.consumesLiquor = false,
   });
+
+  factory Guest.fromJson(Map<String, dynamic> json) => Guest(
+        id: json['id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        group: json['group'] as String? ?? '',
+        rsvpStatus: json['rsvp_status'] as String? ?? 'Pending',
+        mealPreference: json['meal_preference'] as String? ?? 'Non-Veg',
+        consumesLiquor: json['consumes_liquor'] as bool? ?? false,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'group': group,
+        'rsvp_status': rsvpStatus,
+        'meal_preference': mealPreference,
+        'consumes_liquor': consumesLiquor,
+      };
 
   Guest copyWith({String? name, String? group, String? rsvpStatus, String? mealPreference, bool? consumesLiquor}) {
     return Guest(

@@ -64,14 +64,16 @@ class VendorDashboardScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(20),
             children: [
               _buildWelcomeCard(isDark, vendor),
+              const SizedBox(height: 16),
+              _buildAvailabilityCard(isDark, vendor, ref),
               const SizedBox(height: 24),
               _SectionTitle(title: 'Manage Business', isDark: isDark),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _DashboardActionCard(icon: Icons.store_mall_directory_rounded, title: 'Profile', subtitle: 'Edit details', color: AppColors.gold, isDark: isDark)),
+                  Expanded(child: _DashboardActionCard(icon: Icons.store_mall_directory_rounded, title: 'Profile', subtitle: 'Edit details & cover', color: AppColors.gold, isDark: isDark, onTap: () => context.push('/vendor-edit-profile'))),
                   const SizedBox(width: 16),
-                  Expanded(child: _DashboardActionCard(icon: Icons.inventory_2_rounded, title: 'Packages', subtitle: 'Set prices', color: Colors.blueAccent, isDark: isDark, onTap: () => context.push('/vendor-packages'))),
+                  Expanded(child: _DashboardActionCard(icon: Icons.inventory_2_rounded, title: 'Packages', subtitle: 'Set prices & PDF', color: Colors.blueAccent, isDark: isDark, onTap: () => context.push('/vendor-packages'))),
                 ],
               ),
               const SizedBox(height: 16),
@@ -80,6 +82,14 @@ class VendorDashboardScreen extends ConsumerWidget {
                   Expanded(child: _DashboardActionCard(icon: Icons.photo_library_rounded, title: 'Portfolio', subtitle: 'Upload photos', color: Colors.purpleAccent, isDark: isDark, onTap: () => context.push('/vendor-portfolio'))),
                   const SizedBox(width: 16),
                   Expanded(child: _DashboardActionCard(icon: Icons.chat_bubble_rounded, title: 'Messages', subtitle: 'View chats', color: AppColors.whatsappGreen, isDark: isDark, onTap: () => context.push('/chat'))),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _DashboardActionCard(icon: Icons.rate_review_rounded, title: 'Reviews', subtitle: 'Customer feedback', color: Colors.orangeAccent, isDark: isDark, onTap: () => context.push('/vendor-reviews'))),
+                  const SizedBox(width: 16),
+                  const Expanded(child: SizedBox()),
                 ],
               ),
               const SizedBox(height: 32),
@@ -138,6 +148,77 @@ class VendorDashboardScreen extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvailabilityCard(bool isDark, Map<String, dynamic> vendor, WidgetRef ref) {
+    final isAvailable = vendor['is_available'] as bool? ?? true;
+    final vendorId = vendor['id'] ?? ref.watch(authProvider).asData?.value?.id ?? '';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isAvailable
+              ? AppColors.whatsappGreen.withValues(alpha: 0.3)
+              : Colors.redAccent.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isAvailable
+                  ? AppColors.whatsappGreen.withValues(alpha: 0.15)
+                  : Colors.redAccent.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isAvailable ? Icons.check_circle_rounded : Icons.do_not_disturb_on_rounded,
+              color: isAvailable ? AppColors.whatsappGreen : Colors.redAccent,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isAvailable ? 'Accepting Bookings' : 'Currently Unavailable',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: isDark ? Colors.white : AppColors.deepNavy,
+                  ),
+                ),
+                Text(
+                  isAvailable ? 'Visible to couples seeking services' : 'Hidden from active search',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.white54 : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: isAvailable,
+            activeTrackColor: AppColors.whatsappGreen,
+            onChanged: (val) async {
+              if (vendorId.toString().isNotEmpty) {
+                await FirebaseFirestore.instance
+                    .collection('vendor_registrations')
+                    .doc(vendorId.toString())
+                    .update({'is_available': val});
+              }
+            },
           ),
         ],
       ),

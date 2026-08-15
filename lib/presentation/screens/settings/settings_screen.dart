@@ -302,12 +302,21 @@ class _VendorRegistrationTileState extends State<_VendorRegistrationTile> {
       final doc = await FirebaseFirestore.instance.collection('vendor_registrations').doc(account.id).get();
       if (doc.exists) {
         final status = doc.data()?['status'] ?? 'pending';
+        final reason = doc.data()?['rejection_reason'] as String?;
         if (mounted) {
+          String message;
+          if (status == 'approved') {
+            message = 'Your vendor registration is APPROVED! ✅\n\nGo to Vendor Dashboard to manage your business.';
+          } else if (status == 'rejected') {
+            message = 'Your registration was REJECTED.${reason != null && reason.isNotEmpty ? '\n\nReason: $reason' : ''}\n\nPlease contact htckasun@gmail.com for assistance.';
+          } else {
+            message = 'Your vendor registration is currently PENDING.\n\nPlease wait for admin approval.';
+          }
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
               title: const Text('Registration Status'),
-              content: Text('Your vendor registration is currently: ${status.toUpperCase()}\n\nPlease email htckasun@gmail.com with your details if you want to speed up the approval.'),
+              content: Text(message),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))
               ],
@@ -333,6 +342,8 @@ class _VendorRegistrationTileState extends State<_VendorRegistrationTile> {
   void _showRegistrationForm(GoogleSignInAccount account) {
     final phoneCtrl = TextEditingController();
     final priceCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final shortDescCtrl = TextEditingController();
     String? selectedCategory;
     String? selectedDistrict;
     bool isSubmitting = false;
@@ -374,6 +385,26 @@ class _VendorRegistrationTileState extends State<_VendorRegistrationTile> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(labelText: 'Starting Price (LKR)'),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: shortDescCtrl,
+                  maxLength: 80,
+                  decoration: const InputDecoration(
+                    labelText: 'Short Description (tagline)',
+                    hintText: 'e.g. Professional wedding photography in Colombo',
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'About Your Business',
+                    hintText: 'Describe your services, experience...',
+                    alignLabelWithHint: true,
+                  ),
+                ),
               ],
             ),
           ),
@@ -383,22 +414,39 @@ class _VendorRegistrationTileState extends State<_VendorRegistrationTile> {
             ElevatedButton(
               onPressed: isSubmitting ? null : () async {
                 if (selectedCategory == null || selectedDistrict == null || phoneCtrl.text.trim().isEmpty || priceCtrl.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all required fields')));
                   return;
                 }
                 setStateDialog(() => isSubmitting = true);
                 try {
+                  final slug = account.displayName
+                      ?.toLowerCase()
+                      .replaceAll(RegExp(r'[^a-z0-9]+'), '-') ?? account.id;
                   await FirebaseFirestore.instance.collection('vendor_registrations').doc(account.id).set({
                     'uid': account.id,
                     'email': account.email,
                     'name': account.displayName ?? '',
+                    'slug': slug,
                     'category': selectedCategory,
                     'district': selectedDistrict,
                     'starting_price_lkr': int.tryParse(priceCtrl.text.trim()) ?? 0,
                     'phone': phoneCtrl.text.trim(),
                     'whatsapp': phoneCtrl.text.trim(),
+                    'description': descCtrl.text.trim(),
+                    'short_description': shortDescCtrl.text.trim(),
+                    'cover_image_url': account.photoUrl ?? '',
+                    'gallery_images': [],
+                    'rating': 0.0,
+                    'review_count': 0,
+                    'inquiries_count': 0,
+                    'profile_views': 0,
+                    'favorites_count': 0,
+                    'is_boosted': false,
+                    'is_featured': false,
+                    'boost_badge': '',
                     'status': 'pending',
                     'timestamp': FieldValue.serverTimestamp(),
+                    'created_at': FieldValue.serverTimestamp(),
                   });
                   if (context.mounted) {
                     Navigator.pop(ctx);

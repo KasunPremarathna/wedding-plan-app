@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_constants.dart';
@@ -259,7 +261,7 @@ class BudgetState {
   });
 
   int get totalSpent =>
-      expenses.fold(0, (sum, e) => sum + e.amount);
+      expenses.fold(0, (acc, e) => acc + e.amount);
   int get remaining => totalBudget - totalSpent;
   double get spentPercentage =>
       totalBudget > 0 ? (totalSpent / totalBudget).clamp(0.0, 1.0) : 0.0;
@@ -279,32 +281,95 @@ class BudgetExpense {
     required this.amount,
     required this.date,
   });
+
+  factory BudgetExpense.fromJson(Map<String, dynamic> json) => BudgetExpense(
+        id: json['id'] as String? ?? '',
+        category: json['category'] as String? ?? '',
+        note: json['note'] as String? ?? '',
+        amount: json['amount'] as int? ?? 0,
+        date: json['date'] as String? ?? '',
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'category': category,
+        'note': note,
+        'amount': amount,
+        'date': date,
+      };
 }
 
 class BudgetNotifier extends StateNotifier<BudgetState> {
   final SharedPreferences _prefs;
+  final String? _weddingId;
+  StreamSubscription? _sub;
 
   BudgetNotifier(this._prefs)
-      : super(BudgetState(
+      : _weddingId = _prefs.getString('wedding_id'),
+        super(BudgetState(
           totalBudget: _prefs.getInt(AppConstants.budgetKey) ?? 500000,
           expenses: [],
-        ));
+        )) {
+    _initSync();
+  }
+
+  void _initSync() {
+    if (_weddingId != null && _weddingId!.isNotEmpty) {
+      FirebaseFirestore.instance.collection('weddings').doc(_weddingId).snapshots().listen((doc) {
+        if (doc.exists && doc.data()!.containsKey('total_budget')) {
+          final tb = doc.data()!['total_budget'] as int;
+          if (tb != state.totalBudget) {
+            _prefs.setInt(AppConstants.budgetKey, tb);
+            state = BudgetState(totalBudget: tb, expenses: state.expenses);
+          }
+        }
+      });
+
+      _sub = FirebaseFirestore.instance
+          .collection('weddings')
+          .doc(_weddingId)
+          .collection('expenses')
+          .snapshots()
+          .listen((snapshot) {
+        final expenses = snapshot.docs.map((doc) => BudgetExpense.fromJson(doc.data())).toList();
+        state = BudgetState(totalBudget: state.totalBudget, expenses: expenses);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 
   void setTotalBudget(int amount) {
     state = BudgetState(totalBudget: amount, expenses: state.expenses);
     _prefs.setInt(AppConstants.budgetKey, amount);
+    if (_weddingId != null && _weddingId!.isNotEmpty) {
+      FirebaseFirestore.instance.collection('weddings').doc(_weddingId).set({'total_budget': amount}, SetOptions(merge: true));
+    }
   }
 
   void addExpense(BudgetExpense expense) {
-    state = BudgetState(
-        totalBudget: state.totalBudget,
-        expenses: [...state.expenses, expense]);
+    if (_weddingId != null && _weddingId!.isNotEmpty) {
+      FirebaseFirestore.instance
+          .collection('weddings')
+          .doc(_weddingId)
+          .collection('expenses')
+          .doc(expense.id)
+          .set(expense.toJson());
+    } else {
+      state = BudgetState(totalBudget: state.totalBudget, expenses: [...state.expenses, expense]);
+    }
   }
 
   void removeExpense(String id) {
-    state = BudgetState(
-        totalBudget: state.totalBudget,
-        expenses: state.expenses.where((e) => e.id != id).toList());
+    if (_weddingId != null && _weddingId!.isNotEmpty) {
+      FirebaseFirestore.instance.collection('weddings').doc(_weddingId).collection('expenses').doc(id).delete();
+    } else {
+      state = BudgetState(totalBudget: state.totalBudget, expenses: state.expenses.where((e) => e.id != id).toList());
+    }
   }
 }
 
@@ -313,22 +378,71 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 // ============================================================
 
 final guestProvider = StateNotifierProvider<GuestNotifier, List<Guest>>((ref) {
-  return GuestNotifier();
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return GuestNotifier(prefs);
 });
 
 class GuestNotifier extends StateNotifier<List<Guest>> {
-  GuestNotifier() : super([]);
+  final String? _weddingId;
+  StreamSubscription? _sub;
+
+  GuestNotifier(SharedPreferences prefs)
+      : _weddingId = prefs.getString('wedding_id'),
+        super([]) {
+    _initSync();
+  }
+
+  void _initSync() {
+    if (_weddingId != null && _weddingId!.isNotEmpty) {
+      _sub = FirebaseFirestore.instance
+          .collection('weddings')
+          .doc(_weddingId)
+          .collection('guests')
+          .snapshots()
+          .listen((snapshot) {
+        state = snapshot.docs.map((doc) => Guest.fromJson(doc.data())).toList();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 
   void addGuest(Guest guest) {
-    state = [...state, guest];
+    if (_weddingId != null && _weddingId!.isNotEmpty) {
+      FirebaseFirestore.instance
+          .collection('weddings')
+          .doc(_weddingId)
+          .collection('guests')
+          .doc(guest.id)
+          .set(guest.toJson());
+    } else {
+      state = [...state, guest];
+    }
   }
 
   void updateGuest(Guest updated) {
-    state = [for (final g in state) if (g.id == updated.id) updated else g];
+    if (_weddingId != null && _weddingId!.isNotEmpty) {
+      FirebaseFirestore.instance
+          .collection('weddings')
+          .doc(_weddingId)
+          .collection('guests')
+          .doc(updated.id)
+          .update(updated.toJson());
+    } else {
+      state = [for (final g in state) if (g.id == updated.id) updated else g];
+    }
   }
 
   void removeGuest(String id) {
-    state = state.where((g) => g.id != id).toList();
+    if (_weddingId != null && _weddingId!.isNotEmpty) {
+      FirebaseFirestore.instance.collection('weddings').doc(_weddingId).collection('guests').doc(id).delete();
+    } else {
+      state = state.where((g) => g.id != id).toList();
+    }
   }
 }
 

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/models.dart';
 import '../../providers/app_providers.dart';
@@ -33,21 +34,60 @@ class _VendorDetailScreenState extends ConsumerState<VendorDetailScreen>
     _tabController = TabController(length: 4, vsync: this);
   }
   
-  void _trackVendorView() {
+  void _trackVendorView() async {
     if (_trackedView) return;
     _trackedView = true;
     try {
       final userState = ref.read(authProvider);
       final user = userState.asData?.value;
       final viewerName = user?.name ?? 'A guest user';
-      FirebaseFirestore.instance.collection('vendor_notifications').add({
-        'vendor_id': widget.vendorId.toString(),
+      final vidStr = widget.vendorId.toString();
+
+      // Add Firestore notification entry
+      await FirebaseFirestore.instance.collection('vendor_notifications').add({
+        'vendor_id': vidStr,
         'type': 'profile_view',
         'title': 'New Profile View 👀',
         'message': '$viewerName viewed your profile.',
         'timestamp': FieldValue.serverTimestamp(),
         'read': false,
       });
+
+      // Increment profile_views analytics counter
+      await FirebaseFirestore.instance
+          .collection('vendor_registrations')
+          .doc(vidStr)
+          .update({'profile_views': FieldValue.increment(1)});
+
+      final vendorDoc = await FirebaseFirestore.instance
+          .collection('vendor_registrations')
+          .doc(vidStr)
+          .get();
+      String? fcmToken = vendorDoc.data()?['fcm_token'];
+
+      if (fcmToken == null || fcmToken.isEmpty) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(vidStr)
+            .get();
+        fcmToken = userDoc.data()?['fcm_token'];
+      }
+
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        final dio = Dio();
+        await dio.post(
+          'https://apiwedding.kasunpremarathna.com/send_notification.php',
+          data: {
+            'token': fcmToken,
+            'title': 'New Profile View 👀',
+            'body': '$viewerName viewed your profile.',
+            'data': {
+              'type': 'profile_view',
+              'vendor_id': vidStr,
+            }
+          },
+        );
+      }
     } catch (e) {
       debugPrint('Error tracking view: $e');
     }
@@ -161,6 +201,22 @@ class _VendorDetailScreenState extends ConsumerState<VendorDetailScreen>
                               const SizedBox(width: 4),
                               Text(vendor.district,
                                   style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.grey[600])),
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: (vendor.isAvailable ? AppColors.whatsappGreen : Colors.redAccent).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  vendor.isAvailable ? '• Accepting Bookings' : '• Fully Booked',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: vendor.isAvailable ? AppColors.whatsappGreen : Colors.redAccent,
+                                  ),
+                                ),
+                              ),
                             ]),
                           ],
                         ),
@@ -212,7 +268,7 @@ class _VendorDetailScreenState extends ConsumerState<VendorDetailScreen>
                       Expanded(child: _ActionButton(
                         icon: Icons.chat_rounded, label: t.whatsappInquiry,
                         color: AppColors.whatsappGreen,
-                        onTap: () => _launchWhatsApp(vendor.whatsapp),
+                        onTap: () => _launchWhatsApp(vendor.whatsapp, vendor.name),
                       )),
                       const SizedBox(width: 10),
                       Expanded(child: _ActionButton(
@@ -274,7 +330,19 @@ class _VendorDetailScreenState extends ConsumerState<VendorDetailScreen>
     if (await canLaunchUrl(uri)) launchUrl(uri);
   }
 
-  void _launchWhatsApp(String number) async {
+  void _launchWhatsApp(String number, String vendorName) async {
+    try {
+      final userState = ref.read(authProvider);
+      final userName = userState.asData?.value?.name ?? 'Guest User';
+      
+      ref.read(vendorRepositoryProvider).sendWhatsappInquiry(
+        vendorId: widget.vendorId.toString(),
+        name: userName,
+        phone: number,
+        message: 'Inquired via WhatsApp button',
+      );
+    } catch (_) {}
+
     final uri = Uri.parse('https://wa.me/$number');
     if (await canLaunchUrl(uri)) launchUrl(uri);
   }
@@ -385,17 +453,37 @@ class _PackagesTab extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: pkg.features.map((f) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.check_circle_rounded, size: 16, color: color),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(f, style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : AppColors.deepNavy))),
-                      ],
-                    ),
-                  )).toList(),
+                  children: [
+                    ...pkg.features.map((f) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.check_circle_rounded, size: 16, color: color),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(f, style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : AppColors.deepNavy))),
+                        ],
+                      ),
+                    )),
+                    if (pkg.pdfUrl != null && pkg.pdfUrl!.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final uri = Uri.parse(pkg.pdfUrl!);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        icon: Icon(Icons.picture_as_pdf_rounded, color: color, size: 18),
+                        label: Text('View PDF Brochure', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: color.withValues(alpha: 0.5)),
+                          minimumSize: const Size(double.infinity, 44),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],

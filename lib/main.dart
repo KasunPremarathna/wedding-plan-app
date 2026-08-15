@@ -15,6 +15,8 @@ import 'presentation/screens/vendor_dashboard/vendor_dashboard_screen.dart';
 import 'presentation/screens/vendor_dashboard/vendor_notifications_screen.dart';
 import 'presentation/screens/vendor_dashboard/vendor_portfolio_screen.dart';
 import 'presentation/screens/vendor_dashboard/vendor_packages_screen.dart';
+import 'presentation/screens/vendor_dashboard/vendor_edit_profile_screen.dart';
+import 'presentation/screens/vendor_dashboard/vendor_reviews_screen.dart';
 import 'presentation/screens/chat/chat_list_screen.dart';
 import 'presentation/screens/chat/chat_detail_screen.dart';
 import 'presentation/screens/onboarding/role_selection_screen.dart';
@@ -23,6 +25,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:upgrader/upgrader.dart';
+import 'data/datasources/firebase_seeder.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +47,9 @@ void main() async {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('FCM Message received in foreground: ${message.notification?.title}');
     });
+    
+    // Auto-seed Firestore data if needed (runs only in debug mode)
+    await FirebaseSeeder.seedDataIfNeeded();
   } catch (e) {
     debugPrint('Firebase init error: $e');
   }
@@ -170,6 +176,14 @@ final _router = GoRouter(
     GoRoute(
       path: '/vendor-packages',
       builder: (context, state) => const VendorPackagesScreen(),
+    ),
+    GoRoute(
+      path: '/vendor-edit-profile',
+      builder: (context, state) => const VendorEditProfileScreen(),
+    ),
+    GoRoute(
+      path: '/vendor-reviews',
+      builder: (context, state) => const VendorReviewsScreen(),
     ),
   ],
 );

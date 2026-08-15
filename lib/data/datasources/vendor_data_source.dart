@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import '../../core/network/api_exceptions.dart';
 import '../models/models.dart';
 
@@ -58,11 +59,31 @@ class VendorDataSource {
   }
 
   Future<ApiResult<List<SponsoredBanner>>> getSponsoredBanners() async {
-    return const ApiSuccess([]); // Fallback to empty for now
+    try {
+      final snap = await _firestore.collection('sponsored_banners').get();
+      final list = snap.docs.map((d) {
+        final data = d.data();
+        data['id'] = d.id;
+        return SponsoredBanner.fromJson(data);
+      }).toList();
+      return ApiSuccess(list);
+    } catch (e) {
+      return ApiFailure(AppException(message: 'Failed to fetch banners: $e'));
+    }
   }
 
   Future<ApiResult<List<AuspiciousTime>>> getAuspiciousTimes() async {
-    return const ApiSuccess([]); // Fallback to empty for now
+    try {
+      final snap = await _firestore.collection('auspicious_times').get();
+      final list = snap.docs.map((d) {
+        final data = d.data();
+        data['id'] = d.id;
+        return AuspiciousTime.fromJson(data);
+      }).toList();
+      return ApiSuccess(list);
+    } catch (e) {
+      return ApiFailure(AppException(message: 'Failed to fetch times: $e'));
+    }
   }
 
   Future<ApiResult<bool>> sendWhatsappInquiry({
@@ -71,8 +92,51 @@ class VendorDataSource {
     required String phone,
     required String message,
   }) async {
-    // In a real app we'd log this or send an email/notification.
-    // We already have Firebase push notifications coming up in Phase 3.
-    return const ApiSuccess(true);
+    try {
+      // 1. Add notification to Firestore so it shows in the vendor's dashboard
+      await _firestore.collection('vendor_notifications').add({
+        'vendor_id': vendorId,
+        'type': 'new_message',
+        'title': 'New Inquiry from $name',
+        'message': 'Phone: $phone\nMessage: $message',
+        'timestamp': FieldValue.serverTimestamp(),
+        'read': false,
+      });
+
+      // Increment inquiries_count analytics counter
+      await _firestore.collection('vendor_registrations').doc(vendorId).update({
+        'inquiries_count': FieldValue.increment(1),
+      });
+
+      // 2. Fetch vendor's FCM token
+      final vendorDoc = await _firestore.collection('vendor_registrations').doc(vendorId).get();
+      String? fcmToken = vendorDoc.data()?['fcm_token'];
+
+      if (fcmToken == null || fcmToken.isEmpty) {
+        final userDoc = await _firestore.collection('users').doc(vendorId).get();
+        fcmToken = userDoc.data()?['fcm_token'];
+      }
+
+      // 3. Send push notification via PHP backend
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        final dio = Dio();
+        await dio.post(
+          'https://apiwedding.kasunpremarathna.com/send_notification.php',
+          data: {
+            'token': fcmToken,
+            'title': 'New Inquiry from $name',
+            'body': 'Phone: $phone\n$message',
+            'data': {
+              'type': 'inquiry',
+              'vendor_id': vendorId,
+            }
+          },
+        );
+      }
+
+      return const ApiSuccess(true);
+    } catch (e) {
+      return ApiFailure(AppException(message: 'Failed to send inquiry notification: $e'));
+    }
   }
 }

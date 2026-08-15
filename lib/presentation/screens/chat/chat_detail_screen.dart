@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_theme.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../providers/app_providers.dart';
-import 'package:dio/dio.dart';
+
 
 class ChatDetailScreen extends ConsumerStatefulWidget {
   final String roomId;
@@ -38,57 +37,12 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         ref.read(chatServiceProvider).sendMessage(
           roomId: widget.roomId,
           senderId: user.id,
+          senderName: user.name,
           text: _messageController.text.trim(),
           vendorId: widget.vendorId,
           vendorName: widget.vendorName,
           vendorImage: widget.vendorImage,
         );
-
-        try {
-          FirebaseFirestore.instance.collection('vendor_notifications').add({
-            'vendor_id': widget.vendorId.toString(),
-            'type': 'new_message',
-            'title': 'New Message 💬',
-            'message': '${user.name} sent you a message',
-            'timestamp': FieldValue.serverTimestamp(),
-            'read': false,
-          });
-          
-          final text = _messageController.text.trim();
-          
-          // Send background push notification
-          FirebaseFirestore.instance
-              .collection('vendor_registrations')
-              .doc(widget.vendorId)
-              .get()
-              .then((doc) async {
-            if (doc.exists) {
-              final token = doc.data()?['fcm_token'];
-              if (token != null && token.toString().isNotEmpty) {
-                try {
-                  final dio = Dio();
-                  await dio.post(
-                    'https://apiwedding.kasunpremarathna.com/send_notification.php',
-                    data: {
-                      'token': token,
-                      'title': 'New Message from ${user.name}',
-                      'body': text,
-                      'data': {
-                        'type': 'chat',
-                        'roomId': widget.roomId,
-                      }
-                    },
-                  );
-                } catch (e) {
-                  debugPrint('Error sending FCM push: $e');
-                }
-              }
-            }
-          });
-        } catch (e) {
-          debugPrint('Error tracking chat notification: $e');
-        }
-
         _messageController.clear();
       }
     });

@@ -55,24 +55,34 @@ class AppConstants {
     catCakes: '🎂',
   };
 
-  // Districts of Sri Lanka
+  // Districts of Sri Lanka (25 Districts)
   static const List<String> allDistricts = [
     'all',
     'colombo',
+    'gampaha',
+    'kalutara',
     'kandy',
+    'matale',
+    'nuwara_eliya',
     'galle',
     'matara',
+    'hambantota',
     'jaffna',
-    'negombo',
+    'kilinochchi',
+    'mannar',
+    'vavuniya',
+    'mullaitivu',
+    'batticaloa',
+    'ampara',
+    'trincomalee',
+    'kurunegala',
+    'puttalam',
     'anuradhapura',
     'polonnaruwa',
-    'kurunegala',
-    'ratnapura',
     'badulla',
-    'trincomalee',
-    'batticaloa',
-    'hambantota',
-    'ampara',
+    'moneragala',
+    'ratnapura',
+    'kegalle',
   ];
 
   // Price Ranges (LKR)
