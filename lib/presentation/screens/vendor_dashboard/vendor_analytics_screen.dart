@@ -296,7 +296,7 @@ class _VendorAnalyticsScreenState extends ConsumerState<VendorAnalyticsScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.pie_chart_outline_rounded,
+              const Icon(Icons.pie_chart_outline_rounded,
                   color: AppColors.roseGold, size: 22),
               const SizedBox(width: 10),
               Text(

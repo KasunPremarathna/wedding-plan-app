@@ -57,7 +57,7 @@ class SettingsScreen extends ConsumerWidget {
           // About section
           _SectionLabel(label: 'About', isDark: isDark),
           _SettingsCard(isDark: isDark, children: [
-            _InfoTile(icon: Icons.info_rounded, label: '${t.version} 1.0.0', isDark: isDark),
+            _InfoTile(icon: Icons.info_rounded, label: '${t.version} 1.1.0', isDark: isDark),
             _Divider(isDark: isDark),
             _InfoTile(icon: Icons.privacy_tip_rounded, label: t.privacyPolicy, isDark: isDark, onTap: () async {
               final Uri url = Uri.parse('https://weddingplannerlk.com/privacy');
