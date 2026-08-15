@@ -196,21 +196,19 @@ class VendorDashboardScreen extends ConsumerWidget {
 
   void _shareVendorProfile(Map<String, dynamic> vendor) {
     final name = vendor['name'] ?? 'My Business';
-    final vendorId = vendor['id'] ?? '';
     final category = (vendor['category'] ?? 'Wedding Vendor').toString().replaceAll('_', ' ').toUpperCase();
     final district = vendor['district'] ?? 'Sri Lanka';
     final rating = (vendor['rating'] as num?)?.toDouble() ?? 0.0;
     final reviewCount = vendor['review_count'] ?? 0;
 
     final text = '''
-✨ Check out $name on Wedding Planner LK! ✨
+💍 Check out $name on Wedding Planner LK! 💍
 
 👑 Category: $category
-📍 District: $district
+📍 Location: $district
 ⭐ Rating: ${rating.toStringAsFixed(1)} ($reviewCount Reviews)
 
-👉 View my profile & packages on Wedding Planner LK App:
-https://apiwedding.kasunpremarathna.com/vendor.php?id=$vendorId
+📱 Open the Wedding Planner LK App to view our full packages, photo gallery & contact us directly!
 ''';
 
     // ignore: deprecated_member_use

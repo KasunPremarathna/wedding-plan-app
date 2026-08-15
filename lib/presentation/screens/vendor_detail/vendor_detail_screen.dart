@@ -156,14 +156,13 @@ class _VendorDetailScreenState extends ConsumerState<VendorDetailScreen>
               onTap: () {
                 final category = vendor.category.replaceAll('_', ' ').toUpperCase();
                 final text = '''
-✨ Check out ${vendor.name} on Wedding Planner LK! ✨
+💍 Check out ${vendor.name} on Wedding Planner LK! 💍
 
 👑 Category: $category
-📍 District: ${vendor.district}
+📍 Location: ${vendor.district}
 ⭐ Rating: ${vendor.rating.toStringAsFixed(1)} (${vendor.reviewCount} Reviews)
 
-👉 View profile & packages on Wedding Planner LK App:
-https://apiwedding.kasunpremarathna.com/vendor.php?id=${vendor.id}
+📱 Open the Wedding Planner LK App to view full packages, photo gallery & contact options!
 ''';
                 // ignore: deprecated_member_use
                 Share.share(text, subject: 'Check out ${vendor.name} on Wedding Planner LK');
