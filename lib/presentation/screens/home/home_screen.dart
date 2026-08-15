@@ -435,7 +435,7 @@ class _BoostedVendorsRow extends ConsumerWidget {
       ),
       error: (_, __) => const SizedBox.shrink(),
       data: (vendors) => SizedBox(
-        height: 220,
+        height: 225,
         child: ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           scrollDirection: Axis.horizontal,

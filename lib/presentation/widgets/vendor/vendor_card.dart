@@ -70,17 +70,17 @@ class _HorizontalVendorCard extends StatelessWidget {
                   ),
                   child: CachedNetworkImage(
                     imageUrl: vendor.coverImageUrl,
-                    height: 130,
+                    height: 115,
                     width: double.infinity,
                     fit: BoxFit.cover,
                     placeholder: (_, __) => Container(
-                      height: 130,
+                      height: 115,
                       color: AppColors.roseGold.withValues(alpha: 0.15),
                       child: const Icon(Icons.image_rounded,
                           color: AppColors.roseGold, size: 32),
                     ),
                     errorWidget: (_, __, ___) => Container(
-                      height: 130,
+                      height: 115,
                       decoration: const BoxDecoration(
                         gradient: AppColors.champagneGradient,
                       ),
@@ -109,7 +109,7 @@ class _HorizontalVendorCard extends StatelessWidget {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
