@@ -138,6 +138,7 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                                 <th class="px-4 py-3">Vendor</th>
                                 <th class="py-3">Category</th>
                                 <th class="py-3">District</th>
+                                <th class="py-3">Analytics & Views</th>
                                 <th class="py-3">Date</th>
                                 <th class="py-3">Status</th>
                                 <th class="py-3">Actions</th>
@@ -250,6 +251,64 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
           </div>
         </div>
       </div>
+    <!-- Vendor Analytics Detail Modal -->
+    <div class="modal fade" id="vendorAnalyticsModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-dark text-white">
+            <h5 class="modal-title" id="analytics-vendor-name">📊 Vendor Analytics Report</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="row g-3 mb-4">
+              <div class="col-6 col-md-3">
+                <div class="p-3 border rounded-3 bg-light text-center">
+                  <div class="fs-4 fw-bold text-primary" id="analytics-views">0</div>
+                  <div class="small text-muted">👁️ Profile Views</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 border rounded-3 bg-light text-center">
+                  <div class="fs-4 fw-bold text-purple" style="color:#6f42c1" id="analytics-pkg-views">0</div>
+                  <div class="small text-muted">📄 Package Views</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 border rounded-3 bg-light text-center">
+                  <div class="fs-4 fw-bold text-success" id="analytics-inquiries">0</div>
+                  <div class="small text-muted">💬 Inquiries</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 border rounded-3 bg-light text-center">
+                  <div class="fs-4 fw-bold text-danger" id="analytics-favorites">0</div>
+                  <div class="small text-muted">⭐ Favorites</div>
+                </div>
+              </div>
+            </div>
+
+            <h6 class="fw-bold mb-3">📅 Monthly Analytics Summary</h6>
+            <div class="table-responsive border rounded-3">
+              <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Month / Timeframe</th>
+                    <th>Profile Views</th>
+                    <th>Package Views</th>
+                    <th>Inquiries</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-monthly-tbody">
+                  <tr><td colspan="4" class="text-center text-muted py-3">Loading logs...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -338,6 +397,10 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                         </td>
                         <td><span class="badge badge-pending px-2 py-1">${v.category || 'N/A'}</span></td>
                         <td>${v.district || 'N/A'}</td>
+                        <td>
+                            <div class="small fw-bold text-dark">👁️ ${v.profile_views || 0} views</div>
+                            <div class="small text-muted">📄 ${v.package_views || 0} pkgs • 💬 ${v.inquiries_count || 0} inq</div>
+                        </td>
                         <td>${dateStr}</td>
                         <td>
                             ${isBoosted ? '<span class="badge bg-warning text-dark me-1">⚡ Boosted</span>' : ''}
@@ -345,6 +408,7 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                         </td>
                         <td>
                             <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-dark btn-sm action-stats" data-id="${id}">📊 Stats</button>
                                 <button class="btn btn-info btn-sm text-white action-edit" data-id="${id}">✏️ Edit</button>
                                 ${status === 'pending' ? `
                                     <button class="btn btn-success btn-sm action-approve" data-id="${id}">✅ Approve</button>
@@ -397,6 +461,14 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                             await loadVendors(currentTab);
                             loadStats();
                         }
+                    });
+                });
+
+                document.querySelectorAll('.action-stats').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = e.target.getAttribute('data-id');
+                        const v = allVendorsData[id];
+                        openVendorAnalyticsModal(id, v);
                     });
                 });
 
@@ -514,6 +586,62 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
             document.getElementById('banner-link-url').value = `/vendor-detail?id=${vendorId}`;
             const modal = new bootstrap.Modal(document.getElementById('sponsoredModal'));
             modal.show();
+        }
+
+        async function openVendorAnalyticsModal(vendorId, v) {
+            document.getElementById('analytics-vendor-name').textContent = `📊 Analytics: ${v.name || 'Vendor'}`;
+            document.getElementById('analytics-views').textContent = v.profile_views || 0;
+            document.getElementById('analytics-pkg-views').textContent = v.package_views || 0;
+            document.getElementById('analytics-inquiries').textContent = v.inquiries_count || 0;
+            document.getElementById('analytics-favorites').textContent = v.favorites_count || 0;
+
+            const tbody = document.getElementById('analytics-monthly-tbody');
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Fetching monthly logs...</td></tr>';
+
+            const modal = new bootstrap.Modal(document.getElementById('vendorAnalyticsModal'));
+            modal.show();
+
+            try {
+                const logsSnap = await getDocs(collection(db, 'vendor_registrations', vendorId, 'analytics_logs'));
+                
+                const monthStats = {};
+
+                logsSnap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.created_at) {
+                        const date = data.created_at.toDate();
+                        const key = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+                        if (!monthStats[key]) {
+                            monthStats[key] = { profile_views: 0, package_views: 0, inquiries: 0 };
+                        }
+                        if (data.type === 'profile_view') monthStats[key].profile_views++;
+                        if (data.type === 'package_view') monthStats[key].package_views++;
+                        if (data.type === 'inquiry') monthStats[key].inquiries++;
+                    }
+                });
+
+                tbody.innerHTML = '';
+                const months = Object.keys(monthStats);
+
+                if (months.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No monthly log entries found yet. Overall totals shown above.</td></tr>';
+                } else {
+                    months.forEach(m => {
+                        const s = monthStats[m];
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="fw-bold">${m}</td>
+                            <td><span class="badge bg-primary">${s.profile_views} views</span></td>
+                            <td><span class="badge bg-purple" style="background:#6f42c1">${s.package_views} pkgs</span></td>
+                            <td><span class="badge bg-success">${s.inquiries} inq</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="4" class="text-danger text-center py-3">Error loading breakdown: ${e.message}</td></tr>`;
+            }
         }
 
         document.getElementById('btn-save-banner').addEventListener('click', async () => {
