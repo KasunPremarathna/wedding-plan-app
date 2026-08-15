@@ -235,9 +235,11 @@ class VendorDashboardScreen extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          _StatRow(label: 'Total Inquiries', value: '${vendor['inquiries_count'] ?? 0}', isDark: isDark),
+          _StatRow(label: 'Profile Views', value: '${vendor['profile_views'] ?? 0}', isDark: isDark),
           Divider(color: isDark ? Colors.white10 : Colors.grey[200], height: 24),
-          _StatRow(label: 'Profile Clicks', value: '${vendor['profile_views'] ?? 0}', isDark: isDark),
+          _StatRow(label: 'Package & PDF Brochure Views', value: '${vendor['package_views'] ?? 0}', isDark: isDark),
+          Divider(color: isDark ? Colors.white10 : Colors.grey[200], height: 24),
+          _StatRow(label: 'WhatsApp Inquiries', value: '${vendor['inquiries_count'] ?? 0}', isDark: isDark),
           Divider(color: isDark ? Colors.white10 : Colors.grey[200], height: 24),
           _StatRow(label: 'Saved to Favorites', value: '${vendor['favorites_count'] ?? 0}', isDark: isDark),
         ],

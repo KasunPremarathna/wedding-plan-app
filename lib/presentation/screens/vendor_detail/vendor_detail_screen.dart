@@ -469,6 +469,14 @@ class _PackagesTab extends StatelessWidget {
                       const SizedBox(height: 16),
                       OutlinedButton.icon(
                         onPressed: () async {
+                          // Increment package_views counter
+                          try {
+                            FirebaseFirestore.instance
+                                .collection('vendor_registrations')
+                                .doc(vendor.id.toString())
+                                .update({'package_views': FieldValue.increment(1)});
+                          } catch (_) {}
+
                           final uri = Uri.parse(pkg.pdfUrl!);
                           if (await canLaunchUrl(uri)) {
                             await launchUrl(uri, mode: LaunchMode.externalApplication);
