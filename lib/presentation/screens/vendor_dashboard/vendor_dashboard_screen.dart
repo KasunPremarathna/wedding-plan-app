@@ -242,6 +242,34 @@ class VendorDashboardScreen extends ConsumerWidget {
           _StatRow(label: 'WhatsApp Inquiries', value: '${vendor['inquiries_count'] ?? 0}', isDark: isDark),
           Divider(color: isDark ? Colors.white10 : Colors.grey[200], height: 24),
           _StatRow(label: 'Saved to Favorites', value: '${vendor['favorites_count'] ?? 0}', isDark: isDark),
+          Divider(color: isDark ? Colors.white10 : Colors.grey[200], height: 24),
+          InkWell(
+            onTap: () => context.push('/vendor-analytics'),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.roseGold.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.bar_chart_rounded, color: AppColors.roseGold, size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'View Full Reports & Monthly Summary →',
+                    style: TextStyle(
+                      color: AppColors.roseGold,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

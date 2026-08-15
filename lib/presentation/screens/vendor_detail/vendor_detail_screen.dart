@@ -59,6 +59,13 @@ class _VendorDetailScreenState extends ConsumerState<VendorDetailScreen>
           .doc(vidStr)
           .update({'profile_views': FieldValue.increment(1)});
 
+      // Log timestamped activity entry
+      FirebaseFirestore.instance
+          .collection('vendor_registrations')
+          .doc(vidStr)
+          .collection('analytics_logs')
+          .add({'type': 'profile_view', 'created_at': FieldValue.serverTimestamp()});
+
       final vendorDoc = await FirebaseFirestore.instance
           .collection('vendor_registrations')
           .doc(vidStr)
@@ -469,12 +476,16 @@ class _PackagesTab extends StatelessWidget {
                       const SizedBox(height: 16),
                       OutlinedButton.icon(
                         onPressed: () async {
-                          // Increment package_views counter
+                          // Increment package_views counter & log entry
                           try {
-                            FirebaseFirestore.instance
+                            final ref = FirebaseFirestore.instance
                                 .collection('vendor_registrations')
-                                .doc(vendor.id.toString())
-                                .update({'package_views': FieldValue.increment(1)});
+                                .doc(vendor.id.toString());
+                            ref.update({'package_views': FieldValue.increment(1)});
+                            ref.collection('analytics_logs').add({
+                              'type': 'package_view',
+                              'created_at': FieldValue.serverTimestamp(),
+                            });
                           } catch (_) {}
 
                           final uri = Uri.parse(pkg.pdfUrl!);
