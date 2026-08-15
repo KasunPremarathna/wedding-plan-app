@@ -18,6 +18,7 @@ import 'presentation/screens/vendor_dashboard/vendor_packages_screen.dart';
 import 'presentation/screens/vendor_dashboard/vendor_edit_profile_screen.dart';
 import 'presentation/screens/vendor_dashboard/vendor_reviews_screen.dart';
 import 'presentation/screens/vendor_dashboard/vendor_analytics_screen.dart';
+import 'presentation/screens/vendor_dashboard/vendor_recommendations_screen.dart';
 import 'presentation/screens/chat/chat_list_screen.dart';
 import 'presentation/screens/chat/chat_detail_screen.dart';
 import 'presentation/screens/onboarding/role_selection_screen.dart';
@@ -189,6 +190,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/vendor-analytics',
       builder: (context, state) => const VendorAnalyticsScreen(),
+    ),
+    GoRoute(
+      path: '/vendor-recommendations',
+      builder: (context, state) => const VendorRecommendationsScreen(),
     ),
   ],
 );

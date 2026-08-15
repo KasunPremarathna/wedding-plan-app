@@ -98,9 +98,7 @@ class VendorDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _DashboardActionCard(icon: Icons.rate_review_rounded, title: 'Reviews', subtitle: 'Customer feedback', color: Colors.orangeAccent, isDark: isDark, onTap: () => context.push('/vendor-reviews'))),
-                  const SizedBox(width: 16),
-                  const Expanded(child: SizedBox()),
+                  Expanded(child: _DashboardActionCard(icon: Icons.handshake_rounded, title: 'Partners', subtitle: 'Recommend vendors', color: Colors.teal, isDark: isDark, onTap: () => context.push('/vendor-recommendations'))),
                 ],
               ),
               const SizedBox(height: 32),

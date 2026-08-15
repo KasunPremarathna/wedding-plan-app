@@ -883,7 +883,197 @@ class _ContactTab extends StatelessWidget {
             ),
           ),
         )),
+        _RecommendedPartnersSection(
+          vendorId: vendor.id.toString(),
+          vendorName: vendor.name,
+          isDark: isDark,
+        ),
       ],
+    );
+  }
+}
+
+class _RecommendedPartnersSection extends StatelessWidget {
+  final String vendorId;
+  final String vendorName;
+  final bool isDark;
+
+  const _RecommendedPartnersSection({
+    required this.vendorId,
+    required this.vendorName,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('vendor_registrations')
+          .doc(vendorId)
+          .collection('recommendations')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final docs = snapshot.data!.docs;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                '🤝 Recommended Partners by $vendorName',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.deepNavy,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final rec = docs[index].data() as Map<String, dynamic>;
+                  final partnerId = rec['partner_id'] ?? '';
+                  final note = rec['note'] ?? '';
+
+                  return FutureBuilder<DocumentSnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection('vendor_registrations')
+                        .doc(partnerId)
+                        .get(),
+                    builder: (context, pSnap) {
+                      if (!pSnap.hasData || !pSnap.data!.exists) {
+                        return const SizedBox.shrink();
+                      }
+                      final partnerData =
+                          pSnap.data!.data() as Map<String, dynamic>;
+                      final pName = partnerData['name'] ?? 'Vendor';
+                      final pCat = (partnerData['category'] ?? '')
+                          .toString()
+                          .replaceAll('_', ' ')
+                          .toUpperCase();
+                      final pRating =
+                          (partnerData['rating'] as num?)?.toDouble() ?? 0.0;
+
+                      return GestureDetector(
+                        onTap: () => context.push('/vendor/$partnerId'),
+                        child: Container(
+                          width: 200,
+                          margin: const EdgeInsets.only(right: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkCard : Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppColors.roseGold.withValues(alpha: 0.2),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 6,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor:
+                                        AppColors.roseGold.withValues(alpha: 0.2),
+                                    child: Text(
+                                      pName.isNotEmpty
+                                          ? pName[0].toUpperCase()
+                                          : '?',
+                                      style: const TextStyle(
+                                        color: AppColors.roseGold,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          pName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? Colors.white
+                                                : AppColors.deepNavy,
+                                          ),
+                                        ),
+                                        Text(
+                                          '$pCat • ⭐ ${pRating.toStringAsFixed(1)}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: isDark
+                                                ? Colors.white54
+                                                : Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (note.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  '💬 "$note"',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 10.5,
+                                    fontStyle: FontStyle.italic,
+                                    color: AppColors.roseGold,
+                                  ),
+                                ),
+                              ],
+                              const Spacer(),
+                              Text(
+                                'Tap to view partner profile →',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? Colors.white38
+                                      : Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
