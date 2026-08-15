@@ -122,10 +122,11 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
 
         <!-- Tabs -->
         <ul class="nav nav-pills mb-3" id="adminTab">
-            <li class="nav-item"><button class="nav-link active" onclick="switchTab('pending')">⏳ Pending Approvals</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="switchTab('approved')">✅ Approved Vendors</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="switchTab('rejected')">❌ Rejected</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="switchTab('sponsored')">🌟 Sponsored Banners</button></li>
+            <li class="nav-item"><button class="nav-link active" onclick="switchTab('pending', this)">⏳ Pending Approvals</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('approved', this)">✅ Approved Vendors</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('rejected', this)">❌ Rejected</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('all', this)">📋 All Vendors</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchTab('sponsored', this)">🌟 Sponsored Banners</button></li>
         </ul>
 
         <!-- Vendors Table Card -->
@@ -374,19 +375,35 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
             tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div> Loading...</td></tr>';
 
             try {
-                const q = query(collection(db, 'vendor_registrations'), where('status', '==', status));
-                const snap = await getDocs(q);
+                const snap = await getDocs(collection(db, 'vendor_registrations'));
 
                 tbody.innerHTML = '';
 
-                if (snap.empty) {
+                const docsToRender = [];
+                snap.forEach((docItem) => {
+                    const v = docItem.data();
+                    const docStatus = (v.status || 'approved').toLowerCase().trim();
+
+                    if (status === 'all') {
+                        docsToRender.push(docItem);
+                    } else if (status === 'approved' && (docStatus === 'approved' || docStatus === 'active')) {
+                        docsToRender.push(docItem);
+                    } else if (status === 'pending' && docStatus === 'pending') {
+                        docsToRender.push(docItem);
+                    } else if (status === 'rejected' && docStatus === 'rejected') {
+                        docsToRender.push(docItem);
+                    }
+                });
+
+                if (docsToRender.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No ${status} vendors found.</td></tr>`;
                     return;
                 }
 
-                snap.forEach((docItem) => {
+                docsToRender.forEach((docItem) => {
                     const v = docItem.data();
                     const id = docItem.id;
+                    const docStatus = (v.status || 'approved').toLowerCase().trim();
                     let dateStr = 'N/A';
 
                     try {
@@ -411,7 +428,7 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                             <div class="d-flex align-items-center gap-2">
                                 <div class="vendor-avatar">${initials}</div>
                                 <div>
-                                    <div class="fw-bold">${v.name || 'N/A'} ${isVerified ? '<span class="text-primary title="Verified">💙</span>' : ''}</div>
+                                    <div class="fw-bold">${v.name || 'N/A'} ${isVerified ? '<span class="text-primary" title="Verified">💙</span>' : ''}</div>
                                     <div class="text-muted small">${v.email || ''}</div>
                                 </div>
                             </div>
@@ -426,7 +443,7 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                         <td>
                             ${isVerified ? '<span class="badge bg-primary text-white me-1">💙 Verified</span>' : ''}
                             ${isBoosted ? '<span class="badge bg-warning text-dark me-1">⚡ Boosted</span>' : ''}
-                            <span class="badge badge-${status}">${status}</span>
+                            <span class="badge badge-${docStatus}">${docStatus}</span>
                         </td>
                         <td>
                             <div class="d-flex gap-2 flex-wrap">
@@ -435,18 +452,18 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                                 <button class="btn btn-sm ${isVerified ? 'btn-primary' : 'btn-outline-primary'} action-verify" data-id="${id}" data-verified="${isVerified}">
                                     ${isVerified ? '💙 Verified' : '🛡️ Verify'}
                                 </button>
-                                ${status === 'pending' ? `
+                                ${docStatus === 'pending' ? `
                                     <button class="btn btn-success btn-sm action-approve" data-id="${id}">✅ Approve</button>
                                     <button class="btn btn-danger btn-sm action-reject" data-id="${id}">❌ Reject</button>
                                 ` : ''}
-                                ${status === 'approved' ? `
+                                ${docStatus === 'approved' ? `
                                     <button class="btn btn-sm ${isBoosted ? 'btn-warning' : 'btn-outline-warning'} action-boost" data-id="${id}" data-boosted="${isBoosted}">
                                         ${isBoosted ? '⚡ Unboost' : '⚡ Boost'}
                                     </button>
                                     <button class="btn btn-sm btn-outline-primary action-sponsor" data-id="${id}">🌟 Sponsor</button>
                                     <button class="btn btn-danger btn-sm action-reject" data-id="${id}">❌ Reject</button>
                                 ` : ''}
-                                ${status === 'rejected' ? `
+                                ${docStatus === 'rejected' ? `
                                     <button class="btn btn-success btn-sm action-approve" data-id="${id}">↩️ Re-approve</button>
                                 ` : ''}
                             </div>
