@@ -475,10 +475,11 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                     allVendorsData[id] = v;
                 });
 
-                // Attach events
+                // Attach events safely using e.currentTarget / closest
                 document.querySelectorAll('.action-approve').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
-                        const id = e.target.getAttribute('data-id');
+                        const target = e.target.closest('button') || e.target;
+                        const id = target.getAttribute('data-id');
                         if (confirm('Approve this vendor?')) {
                             await updateDoc(doc(db, 'vendor_registrations', id), { status: 'approved' });
                             alert('✅ Vendor approved!');
@@ -490,7 +491,8 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
 
                 document.querySelectorAll('.action-reject').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
-                        const id = e.target.getAttribute('data-id');
+                        const target = e.target.closest('button') || e.target;
+                        const id = target.getAttribute('data-id');
                         const reason = prompt('Rejection reason (optional, shown to vendor):');
                         if (reason === null) return;
                         if (confirm('Reject this vendor?')) {
@@ -508,14 +510,18 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
 
                 document.querySelectorAll('.action-stats').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const id = e.target.getAttribute('data-id');
+                        const target = e.target.closest('button') || e.target;
+                        const id = target.getAttribute('data-id');
                         const v = allVendorsData[id];
                         openVendorAnalyticsModal(id, v);
                     });
+                });
+
                 document.querySelectorAll('.action-verify').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
-                        const id = e.target.getAttribute('data-id');
-                        const isVerified = e.target.getAttribute('data-verified') === 'true';
+                        const target = e.target.closest('button') || e.target;
+                        const id = target.getAttribute('data-id');
+                        const isVerified = target.getAttribute('data-verified') === 'true';
                         const newVerified = !isVerified;
                         await updateDoc(doc(db, 'vendor_registrations', id), {
                             is_verified: newVerified,
@@ -528,8 +534,9 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
 
                 document.querySelectorAll('.action-boost').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
-                        const id = e.target.getAttribute('data-id');
-                        const isBoosted = e.target.getAttribute('data-boosted') === 'true';
+                        const target = e.target.closest('button') || e.target;
+                        const id = target.getAttribute('data-id');
+                        const isBoosted = target.getAttribute('data-boosted') === 'true';
                         const newBoost = !isBoosted;
                         await updateDoc(doc(db, 'vendor_registrations', id), {
                             is_boosted: newBoost,
@@ -543,7 +550,8 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
 
                 document.querySelectorAll('.action-sponsor').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const id = e.target.getAttribute('data-id');
+                        const target = e.target.closest('button') || e.target;
+                        const id = target.getAttribute('data-id');
                         const v = allVendorsData[id];
                         openSponsoredModalWithVendor(id, v);
                     });
@@ -551,7 +559,8 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
 
                 document.querySelectorAll('.action-edit').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const id = e.target.getAttribute('data-id');
+                        const target = e.target.closest('button') || e.target;
+                        const id = target.getAttribute('data-id');
                         const v = allVendorsData[id];
                         document.getElementById('edit-vendor-id').value = id;
                         document.getElementById('edit-vendor-name').value = v.name || '';
