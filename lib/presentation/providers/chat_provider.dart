@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
@@ -22,17 +23,14 @@ final chatRoomsProvider = StreamProvider<List<ChatRoom>>((ref) {
           .collection('chatRooms')
           .where('userId', isEqualTo: user.id)
           .orderBy('lastMessageTime', descending: true)
-          .snapshots();
+          .snapshots()
+          .handleError((error) {
+        debugPrint('Firestore ChatRooms Stream Error: $error');
+      });
 
       // Vendor-side rooms — fetched inside asyncMap below
       // Merge both streams and deduplicate by room id
       return userRooms.asyncMap((userSnap) async {
-        final vendorSnap = await db
-            .collection('chatRooms')
-            .where('vendorId', isEqualTo: user.id)
-            .orderBy('lastMessageTime', descending: true)
-            .get();
-
         final seen = <String>{};
         final merged = <ChatRoom>[];
 
@@ -41,10 +39,21 @@ final chatRoomsProvider = StreamProvider<List<ChatRoom>>((ref) {
             merged.add(ChatRoom.fromFirestore(doc));
           }
         }
-        for (final doc in vendorSnap.docs) {
-          if (seen.add(doc.id)) {
-            merged.add(ChatRoom.fromFirestore(doc));
+
+        try {
+          final vendorSnap = await db
+              .collection('chatRooms')
+              .where('vendorId', isEqualTo: user.id)
+              .orderBy('lastMessageTime', descending: true)
+              .get();
+
+          for (final doc in vendorSnap.docs) {
+            if (seen.add(doc.id)) {
+              merged.add(ChatRoom.fromFirestore(doc));
+            }
           }
+        } catch (e) {
+          debugPrint('Firestore Vendor ChatRooms Error: $e');
         }
 
         // Sort by lastMessageTime descending
@@ -68,6 +77,9 @@ final chatMessagesProvider =
       .collection('messages')
       .orderBy('timestamp', descending: true)
       .snapshots()
+      .handleError((error) {
+        debugPrint('Firestore ChatMessages Error: $error');
+      })
       .map((snapshot) =>
           snapshot.docs.map((doc) => ChatMessage.fromFirestore(doc)).toList());
 });
