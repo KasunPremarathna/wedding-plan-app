@@ -383,6 +383,7 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
 
                     const initials = (v.name || '?')[0].toUpperCase();
                     const isBoosted = v.is_boosted === true;
+                    const isVerified = v.is_verified === true;
 
                     const tr = window.document.createElement('tr');
                     tr.innerHTML = `
@@ -390,7 +391,7 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                             <div class="d-flex align-items-center gap-2">
                                 <div class="vendor-avatar">${initials}</div>
                                 <div>
-                                    <div class="fw-bold">${v.name || 'N/A'}</div>
+                                    <div class="fw-bold">${v.name || 'N/A'} ${isVerified ? '<span class="text-primary title="Verified">💙</span>' : ''}</div>
                                     <div class="text-muted small">${v.email || ''}</div>
                                 </div>
                             </div>
@@ -403,6 +404,7 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                         </td>
                         <td>${dateStr}</td>
                         <td>
+                            ${isVerified ? '<span class="badge bg-primary text-white me-1">💙 Verified</span>' : ''}
                             ${isBoosted ? '<span class="badge bg-warning text-dark me-1">⚡ Boosted</span>' : ''}
                             <span class="badge badge-${status}">${status}</span>
                         </td>
@@ -410,6 +412,9 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                             <div class="d-flex gap-2 flex-wrap">
                                 <button class="btn btn-dark btn-sm action-stats" data-id="${id}">📊 Stats</button>
                                 <button class="btn btn-info btn-sm text-white action-edit" data-id="${id}">✏️ Edit</button>
+                                <button class="btn btn-sm ${isVerified ? 'btn-primary' : 'btn-outline-primary'} action-verify" data-id="${id}" data-verified="${isVerified}">
+                                    ${isVerified ? '💙 Verified' : '🛡️ Verify'}
+                                </button>
                                 ${status === 'pending' ? `
                                     <button class="btn btn-success btn-sm action-approve" data-id="${id}">✅ Approve</button>
                                     <button class="btn btn-danger btn-sm action-reject" data-id="${id}">❌ Reject</button>
@@ -469,6 +474,18 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                         const id = e.target.getAttribute('data-id');
                         const v = allVendorsData[id];
                         openVendorAnalyticsModal(id, v);
+                    });
+                document.querySelectorAll('.action-verify').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const id = e.target.getAttribute('data-id');
+                        const isVerified = e.target.getAttribute('data-verified') === 'true';
+                        const newVerified = !isVerified;
+                        await updateDoc(doc(db, 'vendor_registrations', id), {
+                            is_verified: newVerified,
+                        });
+                        alert(newVerified ? '💙 Vendor marked as VERIFIED!' : 'Verification badge removed.');
+                        await loadVendors(currentTab);
+                        loadStats();
                     });
                 });
 

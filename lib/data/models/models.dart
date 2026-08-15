@@ -25,6 +25,7 @@ class Vendor {
   final List<VendorPackage> packages;
   final List<Review> reviews;
   final bool isAvailable;
+  final bool isVerified;
   final String createdAt;
 
   const Vendor({
@@ -50,6 +51,7 @@ class Vendor {
     required this.packages,
     required this.reviews,
     this.isAvailable = true,
+    this.isVerified = false,
     required this.createdAt,
   });
 
@@ -73,6 +75,7 @@ class Vendor {
         boostBadge: json['boost_badge'] as String? ?? '',
         coverImageUrl: json['cover_image_url'] as String? ?? '',
         isAvailable: json['is_available'] as bool? ?? true,
+        isVerified: json['is_verified'] as bool? ?? false,
         galleryImages: (json['gallery_images'] as List<dynamic>?)
                 ?.map((e) => e as String)
                 .toList() ??
@@ -105,6 +108,7 @@ class Vendor {
         'starting_price_lkr': startingPriceLkr,
         'is_boosted': isBoosted,
         'is_featured': isFeatured,
+        'is_verified': isVerified,
         'boost_badge': boostBadge,
         'cover_image_url': coverImageUrl,
         'gallery_images': galleryImages,

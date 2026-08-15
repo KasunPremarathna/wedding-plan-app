@@ -227,11 +227,49 @@ class _VendorDetailScreenState extends ConsumerState<VendorDetailScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(vendor.name,
-                                style: TextStyle(
-                                  fontSize: 22, fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : AppColors.deepNavy,
-                                )),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    vendor.name,
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark ? Colors.white : AppColors.deepNavy,
+                                    ),
+                                  ),
+                                ),
+                                if (vendor.isVerified) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                          color: Colors.blue.withValues(alpha: 0.3)),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.verified_rounded,
+                                            color: Colors.blue, size: 14),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Verified',
+                                          style: TextStyle(
+                                            color: Colors.blue,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                             const SizedBox(height: 4),
                             Row(children: [
                               const Icon(Icons.location_on_rounded, size: 14, color: AppColors.roseGold),
@@ -255,6 +293,46 @@ class _VendorDetailScreenState extends ConsumerState<VendorDetailScreen>
                                 ),
                               ),
                             ]),
+
+                            // Recommendation Badge Chip
+                            StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collectionGroup('recommendations')
+                                  .where('partner_id', isEqualTo: vendor.id.toString())
+                                  .snapshots(),
+                              builder: (context, snapshot) {
+                                final recCount = snapshot.data?.docs.length ?? 0;
+                                if (recCount == 0) return const SizedBox.shrink();
+
+                                return Container(
+                                  margin: const EdgeInsets.only(top: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.roseGold.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                        color: AppColors.roseGold.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.handshake_rounded,
+                                          color: AppColors.roseGold, size: 15),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '🤝 Recommended Partner ($recCount ${recCount == 1 ? "Vendor" : "Vendors"})',
+                                        style: const TextStyle(
+                                          color: AppColors.roseGold,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),

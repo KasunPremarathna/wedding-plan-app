@@ -113,15 +113,26 @@ class _HorizontalVendorCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    vendor.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          vendor.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : AppColors.deepNavy,
+                          ),
+                        ),
+                      ),
+                      if (vendor.isVerified) ...[
+                        const SizedBox(width: 2),
+                        const Icon(Icons.verified_rounded,
+                            color: Colors.blue, size: 14),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -258,19 +269,30 @@ class _VerticalVendorCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(
-                            vendor.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color:
-                                  isDark ? Colors.white : AppColors.deepNavy,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    vendor.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color:
+                                          isDark ? Colors.white : AppColors.deepNavy,
+                                    ),
+                                  ),
+                                ),
+                                if (vendor.isVerified) ...[
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.verified_rounded,
+                                      color: Colors.blue, size: 15),
+                                ],
+                              ],
                             ),
                           ),
-                        ),
                         _FavoriteButton(
                           vendorId: vendor.id,
                           isFav: isFav,
