@@ -554,27 +554,147 @@ class _GalleryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final images = vendor.galleryImages;
-    if (images.isEmpty) {
-      return Center(child: Text('No gallery images', style: TextStyle(color: isDark ? Colors.white60 : Colors.grey)));
-    }
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, crossAxisSpacing: 6, mainAxisSpacing: 6,
-      ),
-      itemCount: images.length,
-      itemBuilder: (_, i) => ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: CachedNetworkImage(
-          imageUrl: images[i],
-          fit: BoxFit.cover,
-          placeholder: (_, __) => Container(color: AppColors.warmGray),
-          errorWidget: (_, __, ___) => Container(
-            color: AppColors.roseGold.withValues(alpha: 0.1),
-            child: const Icon(Icons.image_rounded, color: AppColors.roseGold),
-          ),
-        ),
-      ).animate().fadeIn(delay: (i * 50).ms),
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('vendor_registrations')
+          .doc(vendor.id.toString())
+          .collection('portfolio_projects')
+          .orderBy('created_at', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final projects = snapshot.data?.docs ?? [];
+
+        if (images.isEmpty && projects.isEmpty) {
+          return Center(
+            child: Text(
+              'No gallery images uploaded yet',
+              style: TextStyle(color: isDark ? Colors.white60 : Colors.grey),
+            ),
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(12),
+          children: [
+            if (projects.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Text(
+                  '📁 Featured Work Projects',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.deepNavy,
+                  ),
+                ),
+              ),
+              ...projects.map((projDoc) {
+                final pData = projDoc.data() as Map<String, dynamic>;
+                final pTitle = pData['title'] ?? 'Work Project';
+                final pImages =
+                    (pData['images'] as List<dynamic>?)?.cast<String>() ?? [];
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkCard : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.roseGold.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            pTitle,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: isDark ? Colors.white : AppColors.deepNavy,
+                            ),
+                          ),
+                          Text(
+                            '${pImages.length} Photos',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.roseGold,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 95,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: pImages.length,
+                          itemBuilder: (context, idx) {
+                            return Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              width: 120,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: CachedNetworkImage(
+                                  imageUrl: pImages[idx],
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 12),
+            ],
+
+            if (images.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Text(
+                  '📸 Photo Gallery',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.deepNavy,
+                  ),
+                ),
+              ),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 6,
+                  mainAxisSpacing: 6,
+                ),
+                itemCount: images.length,
+                itemBuilder: (_, i) => ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: CachedNetworkImage(
+                    imageUrl: images[i],
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(color: AppColors.warmGray),
+                    errorWidget: (_, __, ___) => Container(
+                      color: AppColors.roseGold.withValues(alpha: 0.1),
+                      child: const Icon(Icons.image_rounded, color: AppColors.roseGold),
+                    ),
+                  ),
+                ).animate().fadeIn(delay: (i * 50).ms),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }
