@@ -329,10 +329,15 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
         let currentTab = 'pending';
         let allVendorsData = {};
 
-        window.switchTab = function(tab) {
+        window.switchTab = function(tab, btnElem) {
             currentTab = tab;
             document.querySelectorAll('#adminTab .nav-link').forEach(b => b.classList.remove('active'));
-            if (event) event.target.classList.add('active');
+            
+            if (btnElem) {
+                btnElem.classList.add('active');
+            } else if (window.event && window.event.target) {
+                window.event.target.classList.add('active');
+            }
 
             const vendorCard = document.getElementById('vendor-table-card');
             const sponsoredCard = document.getElementById('sponsored-container');
@@ -349,18 +354,24 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
         }
 
         async function loadStats() {
-            const statuses = ['pending', 'approved', 'rejected'];
-            for (const s of statuses) {
-                const snap = await getDocs(query(collection(db, 'vendor_registrations'), where('status', '==', s)));
-                document.getElementById('stat-' + s).textContent = snap.size;
+            try {
+                const statuses = ['pending', 'approved', 'rejected'];
+                for (const s of statuses) {
+                    const snap = await getDocs(query(collection(db, 'vendor_registrations'), where('status', '==', s)));
+                    const elem = document.getElementById('stat-' + s);
+                    if (elem) elem.textContent = snap.size;
+                }
+                const boostedSnap = await getDocs(query(collection(db, 'vendor_registrations'), where('is_boosted', '==', true)));
+                const bElem = document.getElementById('stat-boosted');
+                if (bElem) bElem.textContent = boostedSnap.size;
+            } catch (err) {
+                console.error('Error loading stats:', err);
             }
-            const boostedSnap = await getDocs(query(collection(db, 'vendor_registrations'), where('is_boosted', '==', true)));
-            document.getElementById('stat-boosted').textContent = boostedSnap.size;
         }
 
         async function loadVendors(status) {
             const tbody = document.getElementById('vendor-table-body');
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div> Loading...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div> Loading...</td></tr>';
 
             try {
                 const q = query(collection(db, 'vendor_registrations'), where('status', '==', status));
@@ -369,16 +380,25 @@ $is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_i
                 tbody.innerHTML = '';
 
                 if (snap.empty) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No ${status} vendors found.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No ${status} vendors found.</td></tr>`;
                     return;
                 }
 
-                snap.forEach((document) => {
-                    const v = document.data();
-                    const id = document.id;
+                snap.forEach((docItem) => {
+                    const v = docItem.data();
+                    const id = docItem.id;
                     let dateStr = 'N/A';
-                    if (v.timestamp) {
-                        dateStr = v.timestamp.toDate().toLocaleDateString('en-GB');
+
+                    try {
+                        if (v.timestamp && typeof v.timestamp.toDate === 'function') {
+                            dateStr = v.timestamp.toDate().toLocaleDateString('en-GB');
+                        } else if (v.timestamp) {
+                            dateStr = new Date(v.timestamp).toLocaleDateString('en-GB');
+                        } else if (v.created_at) {
+                            dateStr = new Date(v.created_at).toLocaleDateString('en-GB');
+                        }
+                    } catch (e) {
+                        dateStr = 'N/A';
                     }
 
                     const initials = (v.name || '?')[0].toUpperCase();
